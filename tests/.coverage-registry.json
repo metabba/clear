@@ -4314,7 +4314,7 @@
     },
     {
       "unitClass": "function",
-      "unitId": "function:harnessDirectiveMaxBytes",
+      "unitId": "function:harnessDirectiveLimit",
       "minMechanism": "none",
       "coveredBy": [
         {
