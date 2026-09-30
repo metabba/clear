@@ -1016,12 +1016,15 @@ that supplied directive instead of probing a fresh `next`, but it still runs
 the same terminal, human-wait, conversation, autonomy, and recursion checks in
 the order above. Delivery is scoped to project, active intent, session when
 available, workflow-state digest, owner/context epoch, and command attempt.
-Compaction or state drift invalidates delivery. Missing or invalid evidence
-returns bounded fresh-`next` recovery and never replays an old continuation.
-Both direct probes and Copilot results use `aidlc-lib.ts boundDirectiveMessage`
-to keep at most 2,000 UTF-8 bytes, cutting only at a code-point boundary. ASCII
-messages of 2,000 characters are unchanged; 501 four-byte emoji become 500 on
-both paths, without a replacement character or a discarded diagnostic.
+Compaction or state drift invalidates delivery. Compaction keeps an open Plan
+Approval question as the active directive, so the person's answer after it is
+still read and the guard still refuses writes until they answer. Missing or
+invalid evidence returns bounded fresh-`next` recovery and never replays an old
+continuation. Both direct probes and Copilot results use `aidlc-lib.ts
+boundDirectiveMessage` to keep at most 2,000 UTF-8 bytes, cutting only at a
+code-point boundary. ASCII messages of 2,000 characters are unchanged; 501
+four-byte emoji become 500 on both paths, without a replacement character or a
+discarded diagnostic.
 
 **Security property — the `reason` is never an override.** Ordinary pending-work reasons name the sanctioned work the conductor still owes ("run the forwarding loop, act on the directive, then report"), never an instruction to do something new or out-of-band. The error-specific reason only labels and quotes the engine diagnostic verbatim; it does not instruct `report`, restart the loop, or repeat until `done`. The same property holds for authority: the Stop hook can only ask the conductor to continue. It cannot mint, rotate, or clear Plan Approval evidence.
 
