@@ -888,7 +888,9 @@ export function probeHarnessCli(
   const run = options.run ?? defaultRun;
   const result = run(path, ["--version"]);
   const version = result.stdout.trim();
-  if (result.status !== 0) {
+  // A floor needs a version: a reply with none is a stand-in, not the CLI.
+  // VS Code's `copilot` prints "Cannot find GitHub Copilot CLI" and exits 0 (#1411).
+  if (result.status !== 0 || (spec.minimumVersion && !versionTuple(version))) {
     return {
       harness,
       command: spec.command,
@@ -2711,6 +2713,7 @@ function selectedHarness(
 export function runtimeDoctorChecks(
   projectDir: string,
   harnessDirHint?: string,
+  options: RuntimeProbeOptions = {},
 ): DiagnosticDoctorCheck[] {
   const selected = selectedHarness(projectDir, harnessDirHint);
   if (!selected) {
@@ -2723,6 +2726,7 @@ export function runtimeDoctorChecks(
     projectDir,
     selected.harnessDir,
     selected.harness,
+    options,
   );
   const checks: DiagnosticDoctorCheck[] = diagnostics.binaries.map((binary) => ({
     pass: binary.status === "found" || binary.status === "not-required",
@@ -2739,10 +2743,12 @@ export function runtimeDoctorChecks(
     fix: binary.remediation,
   }));
   const cli = diagnostics.cli;
+  // Never a fail: a missing or old required CLI warns, and an optional one
+  // passes when absent and warns only when present but too old.
   checks.push({
     pass: cli.status === "found" || cli.status === "not-applicable" ||
       (!cli.required && cli.status === "missing"),
-    ...(cli.required && (cli.status === "missing" || cli.status === "too-old")
+    ...(cli.status === "too-old" || (cli.required && cli.status === "missing")
       ? { severity: "warn" as const }
       : {}),
     label: cli.status === "found"
@@ -2750,7 +2756,7 @@ export function runtimeDoctorChecks(
       : cli.status === "not-applicable"
       ? `Harness CLI: none required for ${cli.harness}`
       : cli.status === "too-old"
-      ? `Harness CLI: ${cli.command} ${cli.version || "unknown"} is below ${cli.minimumVersion}`
+      ? `Harness CLI: ${cli.required ? "" : "optional "}${cli.command} ${cli.version || "unknown"} is below ${cli.minimumVersion}`
       : cli.required
       ? `Harness CLI: ${cli.command} is missing`
       : `Harness CLI: optional ${cli.command} is not installed`,
