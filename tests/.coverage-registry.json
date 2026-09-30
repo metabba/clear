@@ -4314,6 +4314,18 @@
     },
     {
       "unitClass": "function",
+      "unitId": "function:harnessDirectiveMaxBytes",
+      "minMechanism": "none",
+      "coveredBy": [
+        {
+          "file": "tests/unit/t-copilot-directive-budget.test.ts",
+          "mechanism": "cli"
+        }
+      ],
+      "status": "covered"
+    },
+    {
+      "unitClass": "function",
       "unitId": "function:hasAnyUnitClaimRefs",
       "minMechanism": "none",
       "coveredBy": [
@@ -13374,6 +13386,10 @@
       "minMechanism": "cli",
       "coveredBy": [
         {
+          "file": "tests/unit/t-copilot-directive-budget.test.ts",
+          "mechanism": "cli"
+        },
+        {
           "file": "tests/unit/t248-steering-content-delivery.test.ts",
           "mechanism": "cli"
         },
@@ -13443,6 +13459,10 @@
         },
         {
           "file": "tests/integration/t339-classic-upgrade-inflight.test.ts",
+          "mechanism": "cli"
+        },
+        {
+          "file": "tests/unit/t-copilot-directive-budget.test.ts",
           "mechanism": "cli"
         },
         {
