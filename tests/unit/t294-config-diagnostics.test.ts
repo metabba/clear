@@ -19,6 +19,7 @@ import { tmpdir } from "node:os";
 import { delimiter, join, posix } from "node:path";
 import { parse as parseToml } from "smol-toml";
 import { REPO_ROOT } from "../harness/fixtures.ts";
+import { doctorCommandLines, vscodeVisibleOutput } from "../harness/vscode-output-trim.ts";
 import {
   applyConfigDiagnosticRecords,
   codexTrustIssues,
@@ -650,6 +651,34 @@ describe("t294 runtime diagnostics", () => {
       required: true,
       status: "missing",
     }));
+  });
+
+  test("doctor's report and fix lines reach the agent whole in VS Code", () => {
+    // VS Code's terminal tool drops output up to the line that repeats the
+    // command it ran. The old footer erased a healthy report this way (#1411).
+    const oldReport = "AI-DLC doctor\n\nMachine\n  ok    4 checks passed\n\n0 problems, 0 warnings.\n" +
+      "Run 'aidlc doctor --verbose' to see every check.";
+    expect(vscodeVisibleOutput(oldReport, "aidlc doctor").trim()).toBe("");
+    expect(vscodeVisibleOutput(oldReport, "aidlc doctor 2>&1")).toBe(oldReport);
+    for (const [tree, invoke] of [[DIST, "bun .aidlc/tools/aidlc.ts"], [DIST_RELEASE, "aidlc"]] as const) {
+      const project = temp("aidlc-t294-vscode-trim-");
+      cpSync(join(tree, "copilot"), project, { recursive: true });
+      // An unreadable harness.json adds the Providers row and its fix.
+      writeFileSync(join(project, ".aidlc", "tools", "data", "harness.json"), "{\n");
+      for (const flags of [[], ["--verbose"]]) {
+        const result = spawnSync(BUN, [join(project, ".aidlc", "tools", "aidlc.ts"), "doctor", ...flags], {
+          cwd: project,
+          encoding: "utf-8",
+          env: { ...process.env, NO_COLOR: "1", AIDLC_PROJECT_DIR: undefined, CLAUDE_PROJECT_DIR: undefined } as NodeJS.ProcessEnv,
+          timeout: remainingOperationTimeoutMs(NATIVE_STARTUP_TIMEOUT_MS),
+        });
+        const report = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+        expect(report).toContain("Providers: could not read recorded answers");
+        const commandLine = [invoke, "doctor", ...flags].join(" ");
+        expect(doctorCommandLines()).toContain(commandLine);
+        expect(vscodeVisibleOutput(report, commandLine), commandLine).toBe(report);
+      }
+    }
   });
 
   test("doctor never fails an optional harness CLI and keeps required CLI warnings", () => {
