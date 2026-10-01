@@ -333,6 +333,9 @@ try {
       );
       let replyNotice: string | null = null;
       let keptWordsOffset: number | null = null;
+      // "Review the plan" is the person's request to see the plan; it is never
+      // also the answer to another question.
+      let planReviewRequested = false;
       try {
         withAuditLock(projectDir, () => {
           appendAuditEntryUnlocked("HUMAN_TURN", sessionId ? { Session: sessionId } : {}, projectDir);
@@ -363,6 +366,7 @@ try {
               engineQuestionAnswered = true;
             } else if (typedPrompt) {
               replyNotice = recordPlanApprovalReviewRequest(projectDir, typedPrompt);
+              planReviewRequested = replyNotice !== null;
             }
           }
           if (!engineQuestionAnswered && sessionId && humanResponseText) {
@@ -400,7 +404,7 @@ try {
         // A reply the engine's guard-recovery ask took as its answer is that
         // ask's, not revision feedback for a stage gate.
         const offset = keptWordsOffset;
-        if (consumeSharedDirectiveAsk(projectDir, humanResponseText) && offset !== null) {
+        if (!planReviewRequested && consumeSharedDirectiveAsk(projectDir, humanResponseText) && offset !== null) {
           try {
             withAuditLock(projectDir, () => forgetGateWords(projectDir, sessionId, offset));
           } catch {
